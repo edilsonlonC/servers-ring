@@ -40,7 +40,7 @@ def networkConnect(serverConnect):
     _socket = _context.socket(zmq.REQ)
     _socket.connect(f"tcp://{serverConnect}")
     infoToSend = serverInfo
-    infoToSend["command"] = "newserver"
+    infoToSend["command"] = "second_server"
     _socket.send_multipart([json.dumps(infoToSend).encode("utf-8")])
     response = _socket.recv_multipart()
     response_json = json.loads(response[0])
@@ -50,7 +50,6 @@ def networkConnect(serverConnect):
     if not response_json.get("succ"):
         serverInfo["succ"] = {}
         for key in response_json:
-            print(key)
             serverInfo["succ"][key] = response_json[key]
         for key in serverInfo:
             succFirtsNode[key] = serverInfo[key]
@@ -64,7 +63,6 @@ def networkConnect(serverConnect):
         _socket.send_multipart([json.dumps(succFirtsNode).encode("utf-8")])
         response = _socket.recv_multipart()
         del serverInfo["command"]
-        print(serverInfo.get("range"))
 
 
 def firstSucc(jsonRequest):
@@ -73,13 +71,12 @@ def firstSucc(jsonRequest):
     del jsonRequest["command"]
     serverInfo["range"] = rangeServer
     serverInfo["succ"] = jsonRequest
-    print(serverInfo.get("range"))
     socket.send_multipart([json.dumps({"succSaved": True}).encode("utf-8")])
 
 
 def decideCommands(jsonRequest):
     command = jsonRequest.get("command")
-    if command == "newserver":
+    if command == "second_server":
         socket.send_multipart([json.dumps(serverInfo).encode("utf-8")])
     elif command == "firstsucc":
         firstSucc(jsonRequest)
@@ -94,7 +91,8 @@ def main():
 
     print(f"server is running on port {port}")
     while True:
-        print(serverInfo)
+        print(f"server id ", serverInfo.get('serverId'))
+        print(f"range server" ,serverInfo.get('range'))
         request = socket.recv_multipart()
         jsonRequest = json.loads(request[0])
         decideCommands(jsonRequest)
