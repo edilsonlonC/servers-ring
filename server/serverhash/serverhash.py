@@ -5,4 +5,4 @@ def generateserverID(port, address):
     addressAndPort = port + address
     serverHash = sha1(addressAndPort.encode("utf-8")).hexdigest()
     serverID = int(serverHash, 16)
-    return serverID
+    return port
