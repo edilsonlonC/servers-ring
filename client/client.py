@@ -6,7 +6,7 @@ socket.connect("tcp://localhost:5555")
 
 
 def main():
-    socket.send_multipart([b"hola"])
+    socket.send_multipart([b"test client"])
     response = socket.recv()
     print(response)
 

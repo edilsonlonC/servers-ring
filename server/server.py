@@ -76,7 +76,6 @@ def findServerInrange(serverConnect):
         responseAddress = json_response.get('address')
         port = json_response.get('port')
         serverConnect = f"{responseAddress}:{port}"
-        print('is server' ,json_response)
     del json_response['store']
     return json_response
 
@@ -88,8 +87,7 @@ def newNodeInNetwork(serverConnect):
     serverInfo['range'] = json_response.get('range')
 
 def networkConnect(serverConnect):
-    _context = zmq.Context()
-    _socket = _context.socket(zmq.REQ)
+    _socket = context.socket(zmq.REQ)
     _socket.connect(f"tcp://{serverConnect}")
     infoToSend = serverInfo
     infoToSend["command"] = "second_server"
@@ -130,7 +128,11 @@ def decideCommands(jsonRequest):
     command = jsonRequest.get("command")
     if command == "second_server":
         del jsonRequest['command']
-        server_info['pre'] =  jsonRequest
+        serverInfo['pre'] =  {
+                'port' : jsonRequest.get('port'),
+                'address' : jsonRequest.get('address'),
+                'serverId': jsonRequest.get('serverId')
+                }
         socket.send_multipart([json.dumps(serverInfo).encode("utf-8")])
     elif command == "firstsucc":
         firstSucc(jsonRequest)
