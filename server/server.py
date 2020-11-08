@@ -5,11 +5,10 @@ import sys
 import json
 import os
 import argparse
+from utilities.utilities import getFieldsDict , insertFieldsDict ,printPrettyJson, insertFieldsNewDict
 from serverhash.serverhash import generateserverID
 
 n = 6
-context = zmq.Context()
-socket = context.socket(zmq.REP)
 parser = argparse.ArgumentParser("server files")
 parser.add_argument("-p", "--port", help="port where is runnig server")
 parser.add_argument("-sc", "--serverconnect", help="Address to node for connect")
@@ -20,148 +19,67 @@ serverconnect = args.serverconnect
 port = args.port
 address = args.address
 identifier = args.identifier
-socket.bind(f"tcp://*:{port}")
-
-serverInfo = {}
 
 
-#new server command 
-
-def newServer(json_request):
-    request_serverId = json_request.get('serverId')
-    server_range = serverInfo.get('range')
-    if (not isinstance(server_range[0],list)):
-        if (request_serverId > server_range[0] and request_serverId <= server_range[1]):
-            serverInfo['store'] = True
-            json_to_send = {}
-            json_to_send['range'] = [server_range[0],request_serverId]
-            serverInfo['range'] = [request_serverId,server_range[1]]
-            json_to_send['store'] = True
-            json_to_send['succ'] = True
-            
-            socket.send_multipart([json.dumps(json_to_send).encode('utf-8')])
-            del serverInfo['store']
-            return
-        
-    
-    json_response = serverInfo.get('succ')
-    json_response['store'] = False
-    socket.send_multipart([json.dumps(json_response).encode('utf-8')])
-    del json_response['store']
-
-       
-    
-def generateInfoServer(serverId, address, port):
-    serverInfo["address"] = address
-    serverInfo["port"] = port
-    serverInfo["serverId"] = serverId
+def inRange(identifier):
+    server_range = serverInfo.get('server_range')
+    if not insi
 
 
-def createFolderIfNotExist():
-    server_folder = sys.argv[2]
-    if not os.path.isdir(server_folder):
-        os.mkdir(server_folder)
-
-def findServerInrange(serverConnect):
-    serverInfo['command'] = 'new_server'
-    isServer = False
-    _context = zmq.Context()
-    _socket = _context.socket(zmq.REQ)
-    while not isServer:
-        _socket.connect(f"tcp://{serverConnect}")
-        _socket.send_multipart([json.dumps(serverInfo).encode('utf-8')])
-        response = _socket.recv_multipart()
-        json_response = json.loads(response[0])
-        isServer = json_response.get('store')
-        responseAddress = json_response.get('address')
-        port = json_response.get('port')
-        serverConnect = f"{responseAddress}:{port}"
-    del json_response['store']
-    return json_response
-
+def join_network(request):
+    socket = context.socket(zmq.REQ)
+    socket.connect(f"tcp://{serverconnect}")
+    socket.send_multipart([json.dumps(request).encode('utf-8')])
+    response = socket.recv_multipart()
+    print(response)
+    printPrettyJson(request)
     return
 
-def newNodeInNetwork(serverConnect):
-    json_response = findServerInrange(serverConnect)
-    serverInfo['succ'] = json_response.get('succ')
-    serverInfo['range'] = json_response.get('range')
-
-def networkConnect(serverConnect):
-    _socket = context.socket(zmq.REQ)
-    _socket.connect(f"tcp://{serverConnect}")
-    infoToSend = serverInfo
-    infoToSend["command"] = "second_server"
-    _socket.send_multipart([json.dumps(infoToSend).encode("utf-8")])
-    response = _socket.recv_multipart()
-    response_json = json.loads(response[0])
-    succFirtsNode = dict()
-    idServer = serverInfo.get("serverId")
-    idServerConnected = response_json.get("serverId")
-    if not response_json.get("succ"):
-        serverInfo["succ"] = {}
-        for key in response_json:
-            serverInfo["succ"][key] = response_json[key]
-        for key in serverInfo:
-            succFirtsNode[key] = serverInfo[key]
-        succFirtsNode["command"] = "firstsucc"
-        if idServer > idServerConnected:
-            serverInfo["range"] = [idServerConnected, idServer]
-            succFirtsNode["range"] = [[idServer, 2 ** n], [0, idServerConnected]]
-        else:
-            succFirtsNode["range"] = [idServer, idServerConnected]
-            serverInfo["range"] = [[idServerConnected, 2 ** n], [0, idServer]]
-        _socket.send_multipart([json.dumps(succFirtsNode).encode("utf-8")])
-        response = _socket.recv_multipart()
-        del serverInfo["command"]
+def first_server():
+    server_range = [[0,serverInfo.get('identifier')],[serverInfo.get('identifier'),2 ** n]]
+    return insertFieldsDict(
+            serverInfo,identifier = identifier, 
+            succ = {'port':port,'address':address},
+            pred = {'port':port,'address': address},server_range = server_range
+            
+            )
 
 
-def firstSucc(jsonRequest):
-    rangeServer = jsonRequest.get("range")
-    del jsonRequest["range"]
-    del jsonRequest["command"]
-    serverInfo["range"] = rangeServer
-    serverInfo["succ"] = jsonRequest
-    socket.send_multipart([json.dumps({"succSaved": True}).encode("utf-8")])
+#new server 
+def newServer(request):
+    print('newserver')
+    printPrettyJson(request)
+    socket.send_multipart([b'hola'])
 
 
-def decideCommands(jsonRequest):
-    command = jsonRequest.get("command")
-    if command == "second_server":
-        del jsonRequest['command']
-        serverInfo['pre'] =  {
-                'port' : jsonRequest.get('port'),
-                'address' : jsonRequest.get('address'),
-                'serverId': jsonRequest.get('serverId')
-                }
-        socket.send_multipart([json.dumps(serverInfo).encode("utf-8")])
-    elif command == "firstsucc":
-        firstSucc(jsonRequest)
-    elif command == 'new_server':
-        newServer(jsonRequest)
+def decide_commands(request):
+    command = request.get('command')
+   
+    if command == 'new_server':
+        newServer(request)
 
 
 def main():
-    #createFolderIfNotExist()
-    if identifier:
-        serverID = identifier
-    else :
-        serverID = generateserverID(port, address)
-    generateInfoServer(serverID, address, port)
-    if serverconnect:
-        networkConnect(serverconnect)
-    if not serverInfo.get('succ') and serverconnect:
-        newNodeInNetwork(serverconnect)
-
-    print(f"server is running on port {port}")
     while True:
-        print(serverInfo)
+        print('serverInfo')
+        printPrettyJson(serverInfo)
         request = socket.recv_multipart()
-        jsonRequest = json.loads(request[0])
-        decideCommands(jsonRequest)
-    return
-
+        json_request = json.loads(request[0])
+        decide_commands(json_request)
 
 if __name__ == "__main__":
+    context = zmq.Context()
+    socket = context.socket(zmq.REP)
+    socket.bind(f"tcp://*:{port}")
+    serverInfo ={}
+    servetInfo = insertFieldsDict(serverInfo,port=port,address=address,identifier = identifier)
+    if not serverconnect:
+        serverInfo = first_server()
+        print(f"server is running on port {port}")
+    else:
+        request = insertFieldsNewDict(serverInfo,command = 'new_server')
+        join_network(request)
+        
     try:
         main()
     except KeyboardInterrupt:
