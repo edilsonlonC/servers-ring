@@ -1,4 +1,7 @@
 import json
+import os
+import path
+
 
 
 def getFieldsDict(_dict, *args):
@@ -38,3 +41,16 @@ def isInRange(_id,_range):
         if _id > _range[0] and _id <= _range[1]:
             return True
     return False
+
+def makeDirIfNotExist(foldername):
+    if not os.path.exists(foldername):
+        os.mkdir(foldername)
+
+def savePart(folder_name,id_file,_bytes):
+    with open(f"{ folder_name }/{ id_file }",'wb') as _file:
+        _file.write(_bytes)
+
+
+
+
+

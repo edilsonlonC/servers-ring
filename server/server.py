@@ -10,7 +10,9 @@ from utilities.utilities import (
     insertFieldsDict,
     printPrettyJson,
     insertFieldsNewDict,
-    isInRange
+    isInRange,
+    makeDirIfNotExist,
+    savePart
 )
 from serverhash.serverhash import generateserverID
 
@@ -73,9 +75,10 @@ def inRange(request):
 
 
 def join_network(request):
-    _socket = context.socket(zmq.REQ)
+    
     address_server_connect = serverconnect
     while True:
+        _socket = context.socket(zmq.REQ)
         _socket.connect(f"tcp://{address_server_connect}")
         _socket.send_multipart([json.dumps(request).encode("utf-8")])
         response = _socket.recv_multipart()
@@ -141,6 +144,11 @@ def first_server():
 
 
 # new server
+
+
+        
+
+
 def newServer(request):
     print("newserver")
     json_response = inRange(request)
@@ -149,11 +157,13 @@ def newServer(request):
 #response for client
 def upload(request,_bytes):
     file_identifier = request.get('idfile')
+    print('bytes',_bytes)
     _range  = serverInfo.get('server_range')
     print(_range)
     response = getFieldsDict(serverInfo,'identifier','port','address','succ','pred')
 
     if isInRange(file_identifier,_range):
+        savePart(serverInfo.get('identifier'),file_identifier,_bytes)
         response['part_saved'] = True
 
 
@@ -198,6 +208,7 @@ if __name__ == "__main__":
     servetInfo = insertFieldsDict(
         serverInfo, port=port, address=address, identifier=identifier
     )
+    makeDirIfNotExist(str(identifier))
     if not serverconnect:
         serverInfo = first_server()
         print(f"server is running on port {port}")
