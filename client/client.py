@@ -4,6 +4,7 @@
 import zmq
 import argparse
 import json
+from hashlib import sha256
 from utilities.utilities import printPrettyJson
 
 parser = argparse.ArgumentParser("Client files")
@@ -19,7 +20,7 @@ serverconnect = args.serverconnect
 idfile = int(args.idfile)
 command = args.command
 
-part_size = 1024 * 1024
+part_size = 1
 
 
 def search_node(request, bytes_to_send):
@@ -40,12 +41,29 @@ def search_node(request, bytes_to_send):
         succ = response_json.get("succ")
         address_server = f"{succ.get('address')}:{succ.get('port')}"
 
+def upload(request):
+    filename = request.get('filename')
+    try:
 
+        _file = open(filename,'rb')
+        _bytes = _file.read(part_size)
+        print(_bytes)
+        while _bytes:
+            print(_bytes)
+            _bytes = _file.read(part_size)
+            part_hash = sha256(_bytes).hexdigest()
+            print(part_hash)
+            print('identifier',int(part_hash,16))
+    except FileNotFoundError:
+        print(f"File {filename} doesn't exist")
+
+
+#####################################################################################3
 def decide_command(request):
     command = request.get("command")
     if command == "upload":
         print("upload here")
-        search_node(request, b"testbytes")
+        upload(request)
 
 
 def main():

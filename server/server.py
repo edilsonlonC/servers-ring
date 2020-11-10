@@ -30,7 +30,8 @@ identifier = int(args.identifier)
 
 
 def inRange(request):
-    identifier = request.get("identifier")
+    hash_part = request.get('hash_part')
+    identifier = int(hash_part , 16)
     server_range = serverInfo.get("server_range")
     json_response_fields = getFieldsDict(
         serverInfo, "port", "address", "identifier", "server_range", "succ", "pred"
