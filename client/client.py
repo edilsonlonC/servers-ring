@@ -19,7 +19,9 @@ serverconnect = args.serverconnect
 idfile = int(args.idfile)
 command = args.command
 
-part_size = 1024 * 1024 
+part_size = 1024 * 1024
+
+
 def search_node(request, bytes_to_send):
     context = zmq.Context()
     address_server = serverconnect

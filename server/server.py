@@ -12,7 +12,7 @@ from utilities.utilities import (
     insertFieldsNewDict,
     isInRange,
     makeDirIfNotExist,
-    savePart
+    savePart,
 )
 from serverhash.serverhash import generateserverID
 
@@ -33,18 +33,17 @@ def inRange(request):
     identifier = request.get("identifier")
     server_range = serverInfo.get("server_range")
     json_response_fields = getFieldsDict(
-            serverInfo, "port", "address", "identifier", "server_range", "succ", "pred"
-        )
+        serverInfo, "port", "address", "identifier", "server_range", "succ", "pred"
+    )
     in_range = False
     # is the first node
     if isinstance(server_range[0], list):
         first_range = server_range[0]
         second_range = server_range[1]
-       
-       
+
         if identifier >= first_range[0] and identifier < first_range[1]:
             serverInfo["server_range"] = [identifier, serverInfo.get("identifier")]
-            serverInfo['pred']  = request
+            serverInfo["pred"] = request
             in_range = True
 
         elif identifier >= second_range[0] and identifier < second_range[1]:
@@ -52,30 +51,28 @@ def inRange(request):
                 [0, serverInfo.get("identifier")],
                 [identifier, 2 ** n],
             ]
-            serverInfo['pred'] = request
+            serverInfo["pred"] = request
             in_range = True
         if serverInfo.get("identifier") == serverInfo.get("succ").get("identifier"):
             serverInfo["succ"] = request
             serverInfo["pred"] = request.copy()
         print(in_range)
         json_response = insertFieldsNewDict(
-            json_response_fields, in_range=in_range, first_node = True
+            json_response_fields, in_range=in_range, first_node=True
         )
         return json_response
     else:
-        
-        if identifier > server_range[0] and identifier <= server_range[1]:
-            serverInfo['server_range'] = [identifier,serverInfo.get('identifier')]
-            json_response = insertFieldsNewDict(json_response_fields,in_range = True)
-            serverInfo['pred'] = request
-            return json_response
-    return getFieldsDict(serverInfo,'address','port','identifier','succ','pred')
-        
 
+        if identifier > server_range[0] and identifier <= server_range[1]:
+            serverInfo["server_range"] = [identifier, serverInfo.get("identifier")]
+            json_response = insertFieldsNewDict(json_response_fields, in_range=True)
+            serverInfo["pred"] = request
+            return json_response
+    return getFieldsDict(serverInfo, "address", "port", "identifier", "succ", "pred")
 
 
 def join_network(request):
-    
+
     address_server_connect = serverconnect
     while True:
         _socket = context.socket(zmq.REQ)
@@ -96,7 +93,7 @@ def join_network(request):
                     ]
                 elif server_identifier > response_identifier:
                     serverInfo["server_range"] = [
-                        pred.get('identifier'),
+                        pred.get("identifier"),
                         server_identifier,
                     ]
                 if response_identifier == json_response.get("pred").get("identifier"):
@@ -106,27 +103,32 @@ def join_network(request):
                     serverInfo["succ"] = succ_and_pred
                     serverInfo["pred"] = succ_and_pred.copy()
                     return
-            
-            pred = json_response.get('pred')
-            succ = getFieldsDict(json_response,'identifier','address','port')
-            serverInfo['pred'] = pred
-            serverInfo['succ'] = getFieldsDict(json_response,'identifier','port','address')
-            if not json_response.get('first_node'): 
-                serverInfo['server_range'] = [pred.get('identifier'),serverInfo.get('identifier')]
-            print('pred',pred)
+
+            pred = json_response.get("pred")
+            succ = getFieldsDict(json_response, "identifier", "address", "port")
+            serverInfo["pred"] = pred
+            serverInfo["succ"] = getFieldsDict(
+                json_response, "identifier", "port", "address"
+            )
+            if not json_response.get("first_node"):
+                serverInfo["server_range"] = [
+                    pred.get("identifier"),
+                    serverInfo.get("identifier"),
+                ]
+            print("pred", pred)
             address_server_connect = f"{pred.get('address')}:{pred.get('port')}"
             new_socket = context.socket(zmq.REQ)
             new_socket.connect(f"tcp://{address_server_connect}")
-            new_succ = getFieldsDict(serverInfo,'address','port','identifier')
-            new_succ['command'] = 'new_succ'
-            new_socket.send_multipart([json.dumps(new_succ).encode('utf-8')])
+            new_succ = getFieldsDict(serverInfo, "address", "port", "identifier")
+            new_succ["command"] = "new_succ"
+            new_socket.send_multipart([json.dumps(new_succ).encode("utf-8")])
             response = new_socket.recv_multipart()
-            print('response',response)
+            print("response", response)
             return
-            
-        succ = json_response.get('succ')
+
+        succ = json_response.get("succ")
         address_server_connect = f"{succ.get('address')}:{succ.get('port')}"
-        print('address_server_connect',address_server_connect)
+        print("address_server_connect", address_server_connect)
 
 
 def first_server():
@@ -146,58 +148,56 @@ def first_server():
 # new server
 
 
-        
-
-
 def newServer(request):
     print("newserver")
     json_response = inRange(request)
     socket.send_multipart([json.dumps(json_response).encode("utf-8")])
 
-#response for client
-def upload(request,_bytes):
-    file_identifier = request.get('idfile')
-    print('bytes',_bytes)
-    _range  = serverInfo.get('server_range')
+
+# response for client
+def upload(request, _bytes):
+    file_identifier = request.get("idfile")
+    print("bytes", _bytes)
+    _range = serverInfo.get("server_range")
     print(_range)
-    response = getFieldsDict(serverInfo,'identifier','port','address','succ','pred')
+    response = getFieldsDict(
+        serverInfo, "identifier", "port", "address", "succ", "pred"
+    )
 
-    if isInRange(file_identifier,_range):
-        savePart(serverInfo.get('identifier'),file_identifier,_bytes)
-        response['part_saved'] = True
+    if isInRange(file_identifier, _range):
+        savePart(serverInfo.get("identifier"), file_identifier, _bytes)
+        response["part_saved"] = True
+
+    socket.send_multipart([json.dumps(response).encode("utf-8")])
 
 
-
-    socket.send_multipart([json.dumps(response).encode('utf-8')]) 
-
-
-def decide_commands(request,**kwargs):
+def decide_commands(request, **kwargs):
     command = request.get("command")
-    del request['command']
+    del request["command"]
     if command == "new_server":
         newServer(request)
-    if command == 'new_succ':
-        serverInfo['succ'] = request
-        print('new succ here', request)
-        socket.send_multipart([json.dumps({'succ_saved': True}).encode('utf-8')])
-    if command == 'upload':
-        upload(request,kwargs.get('file_bytes'))
-        #socket.send_multipart([b'in upload in server' ]) 
+    if command == "new_succ":
+        serverInfo["succ"] = request
+        print("new succ here", request)
+        socket.send_multipart([json.dumps({"succ_saved": True}).encode("utf-8")])
+    if command == "upload":
+        upload(request, kwargs.get("file_bytes"))
+        # socket.send_multipart([b'in upload in server' ])
 
 
 def main():
     while True:
         print("serverInfo")
-        #printPrettyJson(serverInfo)
+        # printPrettyJson(serverInfo)
 
         print(serverInfo)
         request = socket.recv_multipart()
         json_request = json.loads(request[0])
         if len(request) > 1:
-            decide_commands(json_request,file_bytes = request[1])
+            decide_commands(json_request, file_bytes=request[1])
         else:
             decide_commands(json_request)
-        print('serverInfo', serverInfo)
+        print("serverInfo", serverInfo)
 
 
 if __name__ == "__main__":
