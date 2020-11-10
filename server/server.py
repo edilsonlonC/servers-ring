@@ -10,6 +10,7 @@ from utilities.utilities import (
     insertFieldsDict,
     printPrettyJson,
     insertFieldsNewDict,
+    isInRange
 )
 from serverhash.serverhash import generateserverID
 
@@ -85,9 +86,7 @@ def join_network(request):
                 response_identifier = json_response.get("identifier")
                 pred = json_response.get("pred")
                 succ = json_response.get("succ")
-                print (server_identifier,response_identifier)
                 if server_identifier < response_identifier:
-                    print('in if ')
                     serverInfo["server_range"] = [
                         [0, server_identifier],
                         [pred.get("identifier"), 2 ** n],
@@ -104,8 +103,6 @@ def join_network(request):
                     serverInfo["succ"] = succ_and_pred
                     serverInfo["pred"] = succ_and_pred.copy()
                     return
-                
-
             
             pred = json_response.get('pred')
             succ = getFieldsDict(json_response,'identifier','address','port')
@@ -149,8 +146,22 @@ def newServer(request):
     json_response = inRange(request)
     socket.send_multipart([json.dumps(json_response).encode("utf-8")])
 
+#response for client
+def upload(request,_bytes):
+    file_identifier = request.get('idfile')
+    _range  = serverInfo.get('server_range')
+    print(_range)
+    response = getFieldsDict(serverInfo,'identifier','port','address','succ','pred')
 
-def decide_commands(request):
+    if isInRange(file_identifier,_range):
+        response['part_saved'] = True
+
+
+
+    socket.send_multipart([json.dumps(response).encode('utf-8')]) 
+
+
+def decide_commands(request,**kwargs):
     command = request.get("command")
     del request['command']
     if command == "new_server":
@@ -159,6 +170,9 @@ def decide_commands(request):
         serverInfo['succ'] = request
         print('new succ here', request)
         socket.send_multipart([json.dumps({'succ_saved': True}).encode('utf-8')])
+    if command == 'upload':
+        upload(request,kwargs.get('file_bytes'))
+        #socket.send_multipart([b'in upload in server' ]) 
 
 
 def main():
@@ -169,7 +183,10 @@ def main():
         print(serverInfo)
         request = socket.recv_multipart()
         json_request = json.loads(request[0])
-        decide_commands(json_request)
+        if len(request) > 1:
+            decide_commands(json_request,file_bytes = request[1])
+        else:
+            decide_commands(json_request)
         print('serverInfo', serverInfo)
 
 
