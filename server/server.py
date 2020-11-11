@@ -30,7 +30,7 @@ identifier = args.identifier
 
 
 def inRange(request):
-    identifier = request.get('identifier')
+    identifier = request.get("identifier")
     server_range = serverInfo.get("server_range")
     json_response_fields = getFieldsDict(
         serverInfo, "port", "address", "identifier", "server_range", "succ", "pred"
@@ -133,17 +133,16 @@ def join_network(request):
 
 def first_server():
     server_range = [
-            [0, serverInfo.get("identifier")],
-            [serverInfo.get("identifier"), 2 ** n],
-        ]
+        [0, serverInfo.get("identifier")],
+        [serverInfo.get("identifier"), 2 ** n],
+    ]
     return insertFieldsDict(
-            serverInfo,
-            identifier=identifier,
-            succ={"port": port, "address": address, "identifier": identifier},
-            pred={"port": port, "address": address, "identifier": identifier},
-            server_range=server_range,
-        )
-
+        serverInfo,
+        identifier=identifier,
+        succ={"port": port, "address": address, "identifier": identifier},
+        pred={"port": port, "address": address, "identifier": identifier},
+        server_range=server_range,
+    )
 
     # new server
 
@@ -153,18 +152,19 @@ def newServer(request):
     json_response = inRange(request)
     socket.send_multipart([json.dumps(json_response).encode("utf-8")])
 
-
     # response for client
+
+
 def upload(request, _bytes):
-    hash_part =  request.get('hash_part')
-    file_identifier = int(hash_part,16)
+    hash_part = request.get("hash_part")
+    file_identifier = int(hash_part, 16)
     print("bytes", _bytes)
     _range = serverInfo.get("server_range")
     print(_range)
     response = getFieldsDict(
         serverInfo, "identifier", "port", "address", "succ", "pred"
     )
-    print('is in range', isInRange(file_identifier,_range))
+    print("is in range", isInRange(file_identifier, _range))
     if isInRange(file_identifier, _range):
         savePart(serverInfo.get("identifier"), file_identifier, _bytes)
         response["part_saved"] = True
@@ -190,12 +190,12 @@ def main():
 
     print(f"server is running on port {port}")
     while True:
-        #print("serverInfo")
+        # print("serverInfo")
         # printPrettyJson(serverInfo)
 
-        #print(serverInfo)
+        # print(serverInfo)
 
-        print("serverInfo", serverInfo.get('server_range'))
+        print("serverInfo", serverInfo.get("server_range"))
         request = socket.recv_multipart()
         json_request = json.loads(request[0])
         if len(request) > 1:
@@ -203,7 +203,7 @@ def main():
         else:
             decide_commands(json_request)
 
-        print("serverInfo", serverInfo.get('server_range'))
+        print("serverInfo", serverInfo.get("server_range"))
 
 
 if __name__ == "__main__":
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     socket.bind(f"tcp://*:{port}")
     serverInfo = {}
     if not identifier:
-        identifier = generateServerID(port,address)
+        identifier = generateServerID(port, address)
     else:
         identifier = int(identifier)
     servetInfo = insertFieldsDict(

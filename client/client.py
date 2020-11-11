@@ -41,19 +41,20 @@ def search_node(request, bytes_to_send):
         succ = response_json.get("succ")
         address_server = f"{succ.get('address')}:{succ.get('port')}"
 
+
 def upload(request):
-    filename = request.get('filename')
+    filename = request.get("filename")
     try:
 
-        _file = open(filename,'rb')
+        _file = open(filename, "rb")
         _bytes = _file.read(part_size)
         print(_bytes)
         while _bytes:
             print(_bytes)
             _bytes = _file.read(part_size)
             part_hash = sha256(_bytes).hexdigest()
-            request['hash_part'] = part_hash
-            search_node(request,_bytes)
+            request["hash_part"] = part_hash
+            search_node(request, _bytes)
     except FileNotFoundError:
         print(f"File {filename} doesn't exist")
 
