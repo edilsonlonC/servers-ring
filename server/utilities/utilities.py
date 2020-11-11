@@ -1,6 +1,14 @@
 import json
 import os
 import path
+import string
+import random
+
+
+def getRandomString(length):
+    string_for_generate = string.ascii_letters + string.digits
+    result_string = "".join((random.choice(string_for_generate) for i in range(length)))
+    return result_string
 
 
 def getFieldsDict(_dict, *args):
