@@ -52,8 +52,8 @@ def upload(request):
             print(_bytes)
             _bytes = _file.read(part_size)
             part_hash = sha256(_bytes).hexdigest()
-            print(part_hash)
-            print('identifier',int(part_hash,16))
+            request['hash_part'] = part_hash
+            search_node(request,_bytes)
     except FileNotFoundError:
         print(f"File {filename} doesn't exist")
 
@@ -64,6 +64,8 @@ def decide_command(request):
     if command == "upload":
         print("upload here")
         upload(request)
+    else:
+        print(f"command {command} doesn't exist")
 
 
 def main():
