@@ -4,3 +4,4 @@ server/[0-9]*
 client/*.bin
 client/*.txt
 client/*.mp4
+client/*.chord

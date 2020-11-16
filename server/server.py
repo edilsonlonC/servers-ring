@@ -16,7 +16,7 @@ from utilities.utilities import (
 )
 from serverhash.serverhash import generateServerID
 
-n = 6
+n = 256
 parser = argparse.ArgumentParser("server files")
 parser.add_argument("-p", "--port", help="port where is runnig server")
 parser.add_argument("-sc", "--serverconnect", help="Address to node for connect")
@@ -167,6 +167,7 @@ def upload(request, _bytes):
     print("is in range", isInRange(file_identifier, _range))
     if isInRange(file_identifier, _range):
         savePart(serverInfo.get("identifier"), file_identifier, _bytes)
+        response["hash_saved"] = hash_part
         response["part_saved"] = True
 
     socket.send_multipart([json.dumps(response).encode("utf-8")])
