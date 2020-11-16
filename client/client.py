@@ -15,13 +15,32 @@ parser.add_argument("-id", "--idfile", help="id file only for test")
 parser.add_argument(
     "-c", "--command", help="Command that you want execute: upload , download"
 )
+parser.add_argument('--hash', help = "Hash file that you want download")
 args = parser.parse_args()
 filename = args.filename
 serverconnect = args.serverconnect
 idfile = int(args.idfile)
 command = args.command
+chord_hash = args.hash
 
 part_size = 1
+
+def search_node_download(request):
+    context = zmq.Context()
+    address_server = serverconnect
+    while True:
+        socket = context.socket(zmq.REQ)
+        socket.connect(f"tcp://{address_server}")
+        socket.send_multipart([json.dumps(request).encode('utf-8')])
+        response = socket.recv_multipart()
+        if len(response) > 1:
+            return {'bytes' : response[1]}
+        response_json = json.loads(response[0])
+        if (response_json.get('FileNotFoundError')):
+            return response_json
+        succ = response_json.get('succ')
+        address_server = f"{succ.get('address')}:{succ.get('port')}"
+
 
 
 def search_node(request, bytes_to_send):
@@ -103,6 +122,44 @@ def upload(request):
         print(f"File {filename} doesn't exist")
 
 
+def download_chord(request):
+    response = search_node_download(request)
+    _bytes = response.get('bytes')
+    if _bytes:
+        _file = open('f.chord','w')
+        _file.write(_bytes.decode('utf-8'))
+        return True
+
+    return False
+
+
+
+def create_file(filename, _bytes):
+    _file = open(filename, 'ab')
+    _file.write(_bytes)
+    return
+
+
+
+
+
+def download(request):
+    is_download = download_chord(request)
+    if is_download:
+        print('lines file chord')
+        #TODO: Send to server each hash of chord splited and send to create file 
+        try:
+            _file = open('f.chord')
+            line = _file.readline()
+            while line:
+                print(line)
+                line = _file.readline()
+
+        
+
+        except FileNotFoundError:
+            print('error')
+    return
 
 #####################################################################################3
 def decide_command(request):
@@ -110,6 +167,9 @@ def decide_command(request):
     if command == "upload":
         print("upload here")
         upload(request)
+    elif command == "download":
+        download(request)
+        return
     else:
         print(f"command {command} doesn't exist")
 
@@ -120,6 +180,8 @@ def main():
         "command": command,
         "idfile": idfile,
     }
+    if chord_hash:
+        request['hash_part'] = chord_hash
     decide_command(request)
     return
 
