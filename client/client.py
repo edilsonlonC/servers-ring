@@ -15,7 +15,7 @@ parser.add_argument("-id", "--idfile", help="id file only for test")
 parser.add_argument(
     "-c", "--command", help="Command that you want execute: upload , download"
 )
-parser.add_argument('--hash', help = "Hash file that you want download")
+parser.add_argument("--hash", help="Hash file that you want download")
 args = parser.parse_args()
 filename = args.filename
 serverconnect = args.serverconnect
@@ -25,22 +25,22 @@ chord_hash = args.hash
 
 part_size = 1
 
+
 def search_node_download(request):
     context = zmq.Context()
     address_server = serverconnect
     while True:
         socket = context.socket(zmq.REQ)
         socket.connect(f"tcp://{address_server}")
-        socket.send_multipart([json.dumps(request).encode('utf-8')])
+        socket.send_multipart([json.dumps(request).encode("utf-8")])
         response = socket.recv_multipart()
         if len(response) > 1:
-            return {'bytes' : response[1]}
+            return {"bytes": response[1]}
         response_json = json.loads(response[0])
-        if (response_json.get('FileNotFoundError')):
+        if response_json.get("FileNotFoundError"):
             return response_json
-        succ = response_json.get('succ')
+        succ = response_json.get("succ")
         address_server = f"{succ.get('address')}:{succ.get('port')}"
-
 
 
 def search_node(request, bytes_to_send):
@@ -60,40 +60,41 @@ def search_node(request, bytes_to_send):
             return response_json
         succ = response_json.get("succ")
         address_server = f"{succ.get('address')}:{succ.get('port')}"
-    
 
-def insertCompleteHash(filename,completeHash):
-    print('working en completeHash')
-    
-    
+
+def insertCompleteHash(filename, completeHash):
+    print("working en completeHash")
+
+
 def getCompletehashChord(filename):
-    #Error here, no return bytes
+    # Error here, no return bytes
     try:
         _file_path = f"{filename}.chord"
-        _file_chord = open(_file_path,"rb+")
+        _file_chord = open(_file_path, "rb+")
         _bytes = _file_chord.read()
         _hash = sha256(_bytes).hexdigest()
-        return _hash , _bytes
+        return _hash, _bytes
 
     except FileNotFoundError:
         print(f"{filename}.chord doesn't exist")
         return
 
 
-# no use 
-def createFchord(filename,hash_parts):
-    _file_chord = open(f"{filename}.chord", 'w')
+# no use
+def createFchord(filename, hash_parts):
+    _file_chord = open(f"{filename}.chord", "w")
     _file_chord.writelines(hash_parts)
-    return 
+    return
+
 
 def upload(request):
     filename = request.get("filename")
-    #hash_parts = []
+    # hash_parts = []
     try:
 
         _file = open(filename, "rb")
         _bytes = _file.read(part_size)
-        _fileChord = open(f"{filename}.chord","w+")
+        _fileChord = open(f"{filename}.chord", "w+")
         _fileChord.write(f"{filename}\n")
         _fileChord.write("#\n")
         while _bytes:
@@ -101,22 +102,20 @@ def upload(request):
             part_hash = sha256(_bytes).hexdigest()
             request["hash_part"] = part_hash
             search_node(request, _bytes)
-            #hash_parts.append(f"{part_hash}\n")
+            # hash_parts.append(f"{part_hash}\n")
             _fileChord.write(f"{part_hash}\n")
             _bytes = _file.read(part_size)
 
         _fileChord.close()
 
+        hash_complete_chord, _bytes_chord = getCompletehashChord(filename)
+        print("complete hash", hash_complete_chord)
+        request["hash_part"] = hash_complete_chord
+        response_server = search_node(request, _bytes_chord)
+        print("hash file chord : ", response_server["hash_saved"])
+        print("identifier", int(response_server.get("hash_saved"), 16))
 
-        hash_complete_chord,_bytes_chord = getCompletehashChord(filename)
-        print("complete hash",hash_complete_chord)
-        request['hash_part'] = hash_complete_chord
-        response_server = search_node(request,_bytes_chord)
-        print("hash file chord : " , response_server['hash_saved'])
-        print('identifier' , int(response_server.get('hash_saved'),16))
-
-        #insertCompleteHash(filename,"Here is the complete hash")
-        
+        # insertCompleteHash(filename,"Here is the complete hash")
 
     except FileNotFoundError:
         print(f"File {filename} doesn't exist")
@@ -124,59 +123,52 @@ def upload(request):
 
 def download_chord(request):
     response = search_node_download(request)
-    _bytes = response.get('bytes')
+    _bytes = response.get("bytes")
     print(_bytes)
     if _bytes:
-        _file = open('f.chord','w')
-        _file.write(_bytes.decode('utf-8'))
+        _file = open("f.chord", "w")
+        _file.write(_bytes.decode("utf-8"))
         return True
 
     return False
 
 
-
 def create_file(filename, _bytes):
-    _file = open(filename, 'ab')
+    _file = open(filename, "ab")
     _file.write(_bytes)
     return
-
-
-
 
 
 def download(request):
     is_download = download_chord(request)
     if is_download:
-        print('lines file chord')
-        #TODO: Send to server each hash of chord splited and send to create file 
+        print("lines file chord")
+        # TODO: Send to server each hash of chord splited and send to create file
         try:
-            _file = open('f.chord','r')
-            line = _file.readline() # file name
-            print('line split',line.split('\n')[0])
-            print('line ', line)
-            filename = line.split('\n')[0]
-            _file_download = open(f"{filename}.bin",'ab')
-            line = _file.readline() #Complete hash
+            _file = open("f.chord", "r")
+            line = _file.readline()  # file name
+            print("line split", line.split("\n")[0])
+            print("line ", line)
+            filename = line.split("\n")[0]
+            _file_download = open(f"{filename}.bin", "ab")
+            line = _file.readline()  # Complete hash
             while line:
-                print('line',line)
-                line = _file.readline() # part hashes
-                print('line to send', line)
-                request['hash_part'] = line.split('\n')[0]
+                print("line", line)
+                line = _file.readline()  # part hashes
+                print("line to send", line)
+                request["hash_part"] = line.split("\n")[0]
                 if not line:
                     return
                 response = search_node_download(request)
-                _bytes = response.get('bytes')
+                _bytes = response.get("bytes")
                 print(_bytes)
                 if _bytes:
                     _file_download.write(_bytes)
 
-
-
-        
-
         except FileNotFoundError:
-            print('error')
+            print("error")
     return
+
 
 #####################################################################################3
 def decide_command(request):
@@ -198,7 +190,7 @@ def main():
         "idfile": idfile,
     }
     if chord_hash:
-        request['hash_part'] = chord_hash
+        request["hash_part"] = chord_hash
     decide_command(request)
     return
 

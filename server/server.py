@@ -174,36 +174,34 @@ def upload(request, _bytes):
 
 
 def download(request):
-    hash_part = request.get('hash_part')
-    file_identifier = int(hash_part,16)
-    server_range = serverInfo.get('server_range')
-    identifier = serverInfo.get('identifier')
-    response = getFieldsDict(
-            serverInfo,'identifier','port','succ','pred'
-            )
-    if (isInRange(file_identifier,server_range)):
+    hash_part = request.get("hash_part")
+    file_identifier = int(hash_part, 16)
+    server_range = serverInfo.get("server_range")
+    identifier = serverInfo.get("identifier")
+    response = getFieldsDict(serverInfo, "identifier", "port", "succ", "pred")
+    if isInRange(file_identifier, server_range):
         try:
-            _file = open(f"{identifier}/{file_identifier}","rb")
+            _file = open(f"{identifier}/{file_identifier}", "rb")
             _bytes = _file.read()
-            socket.send_multipart(
-                [
-                json.dumps(response).encode('utf-8'),
-                _bytes
-                ])
+            socket.send_multipart([json.dumps(response).encode("utf-8"), _bytes])
             return
 
         except FileNotFoundError:
-            socket.send_multipart([json.dumps(
-                {
-                    'FileNotFoundError':True,
-                    'id':file_identifier, 
-                    'hash_part':hash_part}
-                ).encode('utf-8')
+            socket.send_multipart(
+                [
+                    json.dumps(
+                        {
+                            "FileNotFoundError": True,
+                            "id": file_identifier,
+                            "hash_part": hash_part,
+                        }
+                    ).encode("utf-8")
                 ]
-                )
+            )
             return
-    socket.send_multipart([json.dumps(response).encode('utf-8')])
+    socket.send_multipart([json.dumps(response).encode("utf-8")])
     return
+
 
 def decide_commands(request, **kwargs):
     command = request.get("command")
@@ -219,8 +217,8 @@ def decide_commands(request, **kwargs):
     elif command == "download":
         download(request)
     elif command == "upload-test":
-        socket.send_multipart([b'working in test'])
-    
+        socket.send_multipart([b"working in test"])
+
 
 def main():
 
