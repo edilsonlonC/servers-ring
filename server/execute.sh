@@ -2,6 +2,7 @@
 
 args=("$@")
 first_server=0
+rm -r [0-9]*
 for i in ${args[@]}
 do
 	if [ $i == 5555 ];

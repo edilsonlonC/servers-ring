@@ -98,12 +98,12 @@ def upload(request):
         _fileChord.write("#\n")
         while _bytes:
             print(_bytes)
-            _bytes = _file.read(part_size)
             part_hash = sha256(_bytes).hexdigest()
             request["hash_part"] = part_hash
             search_node(request, _bytes)
             #hash_parts.append(f"{part_hash}\n")
             _fileChord.write(f"{part_hash}\n")
+            _bytes = _file.read(part_size)
 
         _fileChord.close()
 
@@ -125,6 +125,7 @@ def upload(request):
 def download_chord(request):
     response = search_node_download(request)
     _bytes = response.get('bytes')
+    print(_bytes)
     if _bytes:
         _file = open('f.chord','w')
         _file.write(_bytes.decode('utf-8'))
@@ -149,11 +150,27 @@ def download(request):
         print('lines file chord')
         #TODO: Send to server each hash of chord splited and send to create file 
         try:
-            _file = open('f.chord')
-            line = _file.readline()
+            _file = open('f.chord','r')
+            line = _file.readline() # file name
+            print('line split',line.split('\n')[0])
+            print('line ', line)
+            filename = line.split('\n')[0]
+            _file_download = open(f"{filename}.bin",'ab')
+            line = _file.readline() #Complete hash
             while line:
-                print(line)
-                line = _file.readline()
+                print('line',line)
+                line = _file.readline() # part hashes
+                print('line to send', line)
+                request['hash_part'] = line.split('\n')[0]
+                if not line:
+                    return
+                response = search_node_download(request)
+                _bytes = response.get('bytes')
+                print(_bytes)
+                if _bytes:
+                    _file_download.write(_bytes)
+
+
 
         
 
