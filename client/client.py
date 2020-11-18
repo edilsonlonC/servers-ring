@@ -183,7 +183,7 @@ def decide_command(request):
         print(f"command {command} doesn't exist")
 
 
-def main():
+def main(): 
     request = {
         "filename": filename,
         "command": command,
