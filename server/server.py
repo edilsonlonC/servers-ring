@@ -15,7 +15,6 @@ from utilities.utilities import (
     savePart,
 )
 from serverhash.serverhash import generateServerID
-
 n = 6 #change for testing
 parser = argparse.ArgumentParser("server files")
 parser.add_argument("-p", "--port", help="port where is runnig server")
@@ -69,10 +68,33 @@ def inRange(request):
             return json_response
     return getFieldsDict(serverInfo, "address", "port", "identifier", "succ", "pred")
 
+def recv_new_files(request):
+    address = request.get('address')
+    port = request.get('port')
+    address_server_connect = f"{address}:{port}"
+    while True:
+        _socket = context.socket(zmq.REQ)
+        _socket.connect(f"tcp://{address_server_connect}")
+        request['command'] = "new_server_files"
+        _socket.send_multipart([json.dumps(request).encode('utf-8')])
+        response = _socket.recv_multipart()
+        json_response = json.loads(response[0])
+        if not json_response.get('part_found'):
+            print('no files')
+            return
+        filename = json_response.get('filename')
+        identifier = servetInfo.get('identifier')
+        _bytes = response[1]
+        _file = open(f"{identifier}/{filename}","wb")
+        _file = _file.write(_bytes)
+        
+
+    
 
 def join_network(request):
 
     address_server_connect = serverconnect
+    #posible error
     while True:
         _socket = context.socket(zmq.REQ)
         _socket.connect(f"tcp://{address_server_connect}")
@@ -101,6 +123,9 @@ def join_network(request):
                     )
                     serverInfo["succ"] = succ_and_pred
                     serverInfo["pred"] = succ_and_pred.copy()
+                    print('new server')
+                    recv_new_files(serverInfo.get('succ').copy())
+                    # send info to new node
                     return
 
             pred = json_response.get("pred")
@@ -121,6 +146,8 @@ def join_network(request):
             new_succ["command"] = "new_succ"
             new_socket.send_multipart([json.dumps(new_succ).encode("utf-8")])
             response = new_socket.recv_multipart()
+            print('new server')
+            recv_new_files(serverInfo.get('succ').copy())
             return
 
         succ = json_response.get("succ")
@@ -198,13 +225,33 @@ def download(request):
     socket.send_multipart([json.dumps(response).encode("utf-8")])
     return
 
+def new_server_files(request):
+    '''
+    Send fieles for new server
+    '''
+    raise NotImplemented
 
 def send_files_new_node(request):
     '''
     Get files with iterator, send to new pred and delete files
     '''
-    raise NotImplemented
-
+    identifier = serverInfo.get('identifier')
+    _range = serverInfo.get('server_range')
+    print('request', request)
+    files = os.listdir(f"{identifier}")
+    print('files server here ' ,files)
+    for f in files:
+        if not isInRange(int(f),_range):
+            _file = open(f"{identifier}/{f}","rb")
+            _bytes = _file.read()
+            response = {'part_found': True, "filename": f}
+            socket.send_multipart([json.dumps(response).encode('utf-8'),_bytes])
+            _file.close()
+            os.remove(f"{identifier}/{f}")
+            return
+    response = {'part_found':False }
+    socket.send_multipart([json.dumps(response).encode('utf-8')])
+    return
 
 def decide_commands(request, **kwargs):
     command = request.get("command")
@@ -221,6 +268,8 @@ def decide_commands(request, **kwargs):
     elif command == "upload-test":
         request['command'] = command
         socket.send_multipart([b"working in test"])
+    elif command == "new_server_files":
+        send_files_new_node(request)
 
 
 def main():
