@@ -15,7 +15,7 @@ from utilities.utilities import (
     savePart,
 )
 from serverhash.serverhash import generateServerID
-n = 6 #change for testing
+n = 256 #change for testing
 parser = argparse.ArgumentParser("server files")
 parser.add_argument("-p", "--port", help="port where is runnig server")
 parser.add_argument("-sc", "--serverconnect", help="Address to node for connect")
@@ -152,7 +152,6 @@ def join_network(request):
 
         succ = json_response.get("succ")
         address_server_connect = f"{succ.get('address')}:{succ.get('port')}"
-        print("address_server_connect", address_server_connect)
 
 
 def first_server():
@@ -187,7 +186,6 @@ def upload(request, _bytes):
     response = getFieldsDict(
         serverInfo, "identifier", "port", "address", "succ", "pred"
     )
-    print("is in range", isInRange(file_identifier, _range))
     if isInRange(file_identifier, _range):
         savePart(serverInfo.get("identifier"), file_identifier, _bytes)
         response["hash_saved"] = hash_part
@@ -237,9 +235,7 @@ def send_files_new_node(request):
     '''
     identifier = serverInfo.get('identifier')
     _range = serverInfo.get('server_range')
-    print('request', request)
     files = os.listdir(f"{identifier}")
-    print('files server here ' ,files)
     for f in files:
         if not isInRange(int(f),_range):
             _file = open(f"{identifier}/{f}","rb")
@@ -278,9 +274,9 @@ def main():
     while True:
 
 
-        print("serverInfo", serverInfo.get("server_range"))
         request = socket.recv_multipart()
         json_request = json.loads(request[0])
+        print(json_request)
         if len(request) > 1:
             decide_commands(json_request, file_bytes=request[1])
         else:

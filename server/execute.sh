@@ -7,7 +7,6 @@ for i in ${args[@]}
 do
 	if [ $i == 5555 ];
 	then 
-		echo 'here'
 		gnome-terminal -e "zsh -c 'python server.py -p $i -a localhost;zsh;'"
 		$first_server = $i
 	else
