@@ -76,6 +76,7 @@ def recv_new_files(request):
         _socket = context.socket(zmq.REQ)
         _socket.connect(f"tcp://{address_server_connect}")
         request['command'] = "new_server_files"
+        request['request_range'] = serverInfo.get('server_range')
         _socket.send_multipart([json.dumps(request).encode('utf-8')])
         response = _socket.recv_multipart()
         json_response = json.loads(response[0])
@@ -236,8 +237,10 @@ def send_files_new_node(request):
     identifier = serverInfo.get('identifier')
     _range = serverInfo.get('server_range')
     files = os.listdir(f"{identifier}")
+    server_request_range = request.get('request_range')
+    print('range',server_request_range)
     for f in files:
-        if not isInRange(int(f),_range):
+        if not isInRange(int(f),_range) and isInRange(int(f),server_request_range):
             _file = open(f"{identifier}/{f}","rb")
             _bytes = _file.read()
             response = {'part_found': True, "filename": f}
