@@ -15,7 +15,8 @@ from utilities.utilities import (
     savePart,
 )
 from serverhash.serverhash import generateServerID
-n = 256 #change for testing
+
+n = 256  # change for testing
 parser = argparse.ArgumentParser("server files")
 parser.add_argument("-p", "--port", help="port where is runnig server")
 parser.add_argument("-sc", "--serverconnect", help="Address to node for connect")
@@ -68,34 +69,33 @@ def inRange(request):
             return json_response
     return getFieldsDict(serverInfo, "address", "port", "identifier", "succ", "pred")
 
+
 def recv_new_files(request):
-    address = request.get('address')
-    port = request.get('port')
+    address = request.get("address")
+    port = request.get("port")
     address_server_connect = f"{address}:{port}"
     while True:
         _socket = context.socket(zmq.REQ)
         _socket.connect(f"tcp://{address_server_connect}")
-        request['command'] = "new_server_files"
-        request['request_range'] = serverInfo.get('server_range')
-        _socket.send_multipart([json.dumps(request).encode('utf-8')])
+        request["command"] = "new_server_files"
+        request["request_range"] = serverInfo.get("server_range")
+        _socket.send_multipart([json.dumps(request).encode("utf-8")])
         response = _socket.recv_multipart()
         json_response = json.loads(response[0])
-        if not json_response.get('part_found'):
-            print('no files')
+        if not json_response.get("part_found"):
+            print("no files")
             return
-        filename = json_response.get('filename')
-        identifier = servetInfo.get('identifier')
+        filename = json_response.get("filename")
+        identifier = servetInfo.get("identifier")
         _bytes = response[1]
-        _file = open(f"{identifier}/{filename}","wb")
+        _file = open(f"{identifier}/{filename}", "wb")
         _file = _file.write(_bytes)
-        
 
-    
 
 def join_network(request):
 
     address_server_connect = serverconnect
-    #posible error
+    # posible error
     while True:
         _socket = context.socket(zmq.REQ)
         _socket.connect(f"tcp://{address_server_connect}")
@@ -124,8 +124,8 @@ def join_network(request):
                     )
                     serverInfo["succ"] = succ_and_pred
                     serverInfo["pred"] = succ_and_pred.copy()
-                    print('new server')
-                    recv_new_files(serverInfo.get('succ').copy())
+                    print("new server")
+                    recv_new_files(serverInfo.get("succ").copy())
                     # send info to new node
                     return
 
@@ -147,8 +147,8 @@ def join_network(request):
             new_succ["command"] = "new_succ"
             new_socket.send_multipart([json.dumps(new_succ).encode("utf-8")])
             response = new_socket.recv_multipart()
-            print('new server')
-            recv_new_files(serverInfo.get('succ').copy())
+            print("new server")
+            recv_new_files(serverInfo.get("succ").copy())
             return
 
         succ = json_response.get("succ")
@@ -181,8 +181,8 @@ def newServer(request):
 def upload(request, _bytes):
     hash_part = request.get("hash_part")
     file_identifier = int(hash_part, 16)
-    if request.get('command') == 'upload_test':
-        file_identifier = request.get('fileId')
+    if request.get("command") == "upload_test":
+        file_identifier = request.get("fileId")
     _range = serverInfo.get("server_range")
     response = getFieldsDict(
         serverInfo, "identifier", "port", "address", "succ", "pred"
@@ -224,33 +224,36 @@ def download(request):
     socket.send_multipart([json.dumps(response).encode("utf-8")])
     return
 
+
 def new_server_files(request):
-    '''
+    """
     Send fieles for new server
-    '''
+    """
     raise NotImplemented
 
+
 def send_files_new_node(request):
-    '''
+    """
     Get files with iterator, send to new pred and delete files
-    '''
-    identifier = serverInfo.get('identifier')
-    _range = serverInfo.get('server_range')
+    """
+    identifier = serverInfo.get("identifier")
+    _range = serverInfo.get("server_range")
     files = os.listdir(f"{identifier}")
-    server_request_range = request.get('request_range')
-    print('range',server_request_range)
+    server_request_range = request.get("request_range")
+    print("range", server_request_range)
     for f in files:
-        if not isInRange(int(f),_range) and isInRange(int(f),server_request_range):
-            _file = open(f"{identifier}/{f}","rb")
+        if not isInRange(int(f), _range) and isInRange(int(f), server_request_range):
+            _file = open(f"{identifier}/{f}", "rb")
             _bytes = _file.read()
-            response = {'part_found': True, "filename": f}
-            socket.send_multipart([json.dumps(response).encode('utf-8'),_bytes])
+            response = {"part_found": True, "filename": f}
+            socket.send_multipart([json.dumps(response).encode("utf-8"), _bytes])
             _file.close()
             os.remove(f"{identifier}/{f}")
             return
-    response = {'part_found':False }
-    socket.send_multipart([json.dumps(response).encode('utf-8')])
+    response = {"part_found": False}
+    socket.send_multipart([json.dumps(response).encode("utf-8")])
     return
+
 
 def decide_commands(request, **kwargs):
     command = request.get("command")
@@ -265,7 +268,7 @@ def decide_commands(request, **kwargs):
     elif command == "download":
         download(request)
     elif command == "upload-test":
-        request['command'] = command
+        request["command"] = command
         socket.send_multipart([b"working in test"])
     elif command == "new_server_files":
         send_files_new_node(request)
@@ -275,7 +278,6 @@ def main():
 
     print(f"server is running on port {port}")
     while True:
-
 
         request = socket.recv_multipart()
         json_request = json.loads(request[0])

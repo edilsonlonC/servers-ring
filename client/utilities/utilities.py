@@ -1,6 +1,7 @@
 import json
 import os
 
+
 def printPrettyJson(_dict):
     print(json.dumps(_dict, indent=2))
 
@@ -12,6 +13,7 @@ def makedirIfNotExist(folder_name):
 
 def file_exist(filename):
     return os.path.exists(filename)
+
 
 def get_newname(filename):
     list_dir = os.listdir()

@@ -5,7 +5,12 @@ import zmq
 import argparse
 import json
 from hashlib import sha256
-from utilities.utilities import printPrettyJson, get_newname , file_exist, makedirIfNotExist
+from utilities.utilities import (
+    printPrettyJson,
+    get_newname,
+    file_exist,
+    makedirIfNotExist,
+)
 import fileinput
 
 parser = argparse.ArgumentParser("Client files")
@@ -175,7 +180,7 @@ def decide_command(request):
         print(f"command {command} doesn't exist")
 
 
-def main(): 
+def main():
     request = {
         "filename": filename,
         "command": command,
@@ -187,6 +192,6 @@ def main():
 
 
 if __name__ == "__main__":
-    makedirIfNotExist('temp')
+    makedirIfNotExist("temp")
     print(filename, serverconnect)
     main()
