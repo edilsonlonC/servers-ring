@@ -5,13 +5,12 @@ import zmq
 import argparse
 import json
 from hashlib import sha256
-from utilities.utilities import printPrettyJson
+from utilities.utilities import printPrettyJson, get_newname , file_exist, makedirIfNotExist
 import fileinput
 
 parser = argparse.ArgumentParser("Client files")
 parser.add_argument("-f", "--filename", help="File name than you want upload")
 parser.add_argument("-sc", "--serverconnect", help="address of server")
-parser.add_argument("-id", "--idfile", help="id file only for test")
 parser.add_argument(
     "-c", "--command", help="Command that you want execute: upload , download"
 )
@@ -19,11 +18,10 @@ parser.add_argument("--hash", help="Hash file that you want download")
 args = parser.parse_args()
 filename = args.filename
 serverconnect = args.serverconnect
-idfile = int(args.idfile)
 command = args.command
 chord_hash = args.hash
 
-part_size = 1
+part_size = 1024 * 1024 * 10
 
 
 def search_node_download(request):
@@ -47,12 +45,10 @@ def search_node(request, bytes_to_send):
     context = zmq.Context()
     address_server = serverconnect
     while True:
-        print(address_server)
         socket = context.socket(zmq.REQ)
         socket.connect(f"tcp://{address_server}")
         socket.send_multipart([json.dumps(request).encode("utf-8"), bytes_to_send])
         response = socket.recv_multipart()
-        print("response")
         response_json = json.loads(response[0])
         if response_json.get("part_saved"):
             print("part is saved in")
@@ -69,7 +65,7 @@ def insertCompleteHash(filename, completeHash):
 def getCompletehashChord(filename):
     # Error here, no return bytes
     try:
-        _file_path = f"{filename}.chord"
+        _file_path = f"temp/{filename}.chord"
         _file_chord = open(_file_path, "rb+")
         _bytes = _file_chord.read()
         _hash = sha256(_bytes).hexdigest()
@@ -82,7 +78,7 @@ def getCompletehashChord(filename):
 
 # no use
 def createFchord(filename, hash_parts):
-    _file_chord = open(f"{filename}.chord", "w")
+    _file_chord = open(f"temp/{filename}.chord", "w")
     _file_chord.writelines(hash_parts)
     return
 
@@ -94,11 +90,10 @@ def upload(request):
 
         _file = open(filename, "rb")
         _bytes = _file.read(part_size)
-        _fileChord = open(f"{filename}.chord", "w+")
+        _fileChord = open(f"temp/{filename}.chord", "w+")
         _fileChord.write(f"{filename}\n")
         _fileChord.write("#\n")
         while _bytes:
-            print(_bytes)
             part_hash = sha256(_bytes).hexdigest()
             request["hash_part"] = part_hash
             search_node(request, _bytes)
@@ -126,7 +121,7 @@ def download_chord(request):
     _bytes = response.get("bytes")
     print(_bytes)
     if _bytes:
-        _file = open("f.chord", "w")
+        _file = open("temp/f.chord", "w")
         _file.write(_bytes.decode("utf-8"))
         return True
 
@@ -145,23 +140,20 @@ def download(request):
         print("lines file chord")
         # TODO: Send to server each hash of chord splited and send to create file
         try:
-            _file = open("f.chord", "r")
+            _file = open("temp/f.chord", "r")
             line = _file.readline()  # file name
-            print("line split", line.split("\n")[0])
-            print("line ", line)
             filename = line.split("\n")[0]
-            _file_download = open(f"{filename}.bin", "ab")
+            if file_exist(filename):
+                filename = get_newname(filename)
+            _file_download = open(f"{filename}", "ab")
             line = _file.readline()  # Complete hash
             while line:
-                print("line", line)
                 line = _file.readline()  # part hashes
-                print("line to send", line)
                 request["hash_part"] = line.split("\n")[0]
                 if not line:
                     return
                 response = search_node_download(request)
                 _bytes = response.get("bytes")
-                print(_bytes)
                 if _bytes:
                     _file_download.write(_bytes)
 
@@ -187,7 +179,6 @@ def main():
     request = {
         "filename": filename,
         "command": command,
-        "idfile": idfile,
     }
     if chord_hash:
         request["hash_part"] = chord_hash
@@ -196,5 +187,6 @@ def main():
 
 
 if __name__ == "__main__":
-    print(filename, serverconnect, idfile)
+    makedirIfNotExist('temp')
+    print(filename, serverconnect)
     main()
