@@ -5,3 +5,6 @@ client/*.bin*
 client/*.txt
 client/*.mp4
 client/*.chord
+client/*.jpg
+client/*.jpeg
+client/temp/*

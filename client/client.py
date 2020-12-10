@@ -26,7 +26,7 @@ serverconnect = args.serverconnect
 command = args.command
 chord_hash = args.hash
 
-part_size = 1024 * 1024 * 10
+part_size = 256 * 256
 
 
 def search_node_download(request):
